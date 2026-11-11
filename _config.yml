@@ -1,0 +1,11 @@
+title: Vector Brand Control
+description: "GEO-контроль бренда: видимость в ответах ИИ, причины, план правок"
+theme: jekyll-theme-minimal
+kramdown:
+  parse_block_html: true
+exclude:
+  - skills/
+  - scripts/
+  - tests/
+  - .github/
+  - .gitignore

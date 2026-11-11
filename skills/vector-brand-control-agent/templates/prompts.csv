@@ -1,0 +1,31 @@
+id,lang,scenario_class,weight,text
+cat-01,ru,category,3,какой {category} выбрать в 2026 году
+cat-02,ru,category,3,лучшие {category} — рейтинг и сравнение
+cat-03,ru,category,2,топ-10 {category} для бизнеса
+cat-04,ru,category,2,какие {category} работают на практике без рекламы
+cat-05,ru,category,3,посоветуй {category} под задачу компании из 50 человек
+cat-06,ru,category,1,сервисы {category} на русском рынке
+cmp-01,ru,compare,3,{brand} или {competitor} — что лучше и почему
+cmp-02,ru,compare,3,сравни {brand} и {competitor}: плюсы и минусы
+cmp-03,ru,compare,2,{competitor} дороже {brand} — стоит ли переплачивать
+cmp-04,ru,compare,2,чем {brand} отличается от {competitor}
+cmp-05,ru,compare,2,что выбрать: {competitor} или {brand} для малого бизнеса
+cmp-06,ru,compare,1,перехожу с {competitor} на {brand} — что учесть
+task-01,ru,task,3,нужен {category} с бюджетом до 30 тысяч рублей в месяц
+task-02,ru,task,3,подбери {category} для отдела из 3 человек без интеграций
+task-03,ru,task,3,{category} с оплатой по факту и без годового контракта
+task-04,ru,task,2,{category} для работы в России и СНГ
+task-05,ru,task,2,самый быстрый способ начать пользоваться {category}
+task-06,ru,task,2,{category} с выгрузкой данных и API
+tru-01,ru,trust,2,отзывы о {brand} — надёжная ли компания
+tru-02,ru,trust,2,есть ли у {brand} реальные клиенты и кейсы
+tru-03,ru,trust,2,{brand} — мошенники или нормальный сервис
+tru-04,ru,trust,1,насколько безопасно передавать данные в {brand}
+brd-01,ru,brand,1,что такое {brand} и чем занимается компания
+brd-02,ru,brand,1,{brand} — это российская компания или зарубежная
+brd-03,ru,brand,2,стоит ли пользоваться {brand} в 2026 году
+brd-04,ru,brand,1,какие тарифы и цены у {brand}
+rsk-01,ru,risk,2,какие минусы и проблемы у {brand}
+rsk-02,ru,risk,2,на что жалуются клиенты {brand}
+rsk-03,ru,risk,2,{brand} закрывается или уходит с рынка — правда ли это
+rsk-04,ru,risk,1,что произойдёт с данными при отказе от {brand}

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+measurements/
+plan.md
+report.md
+dynamics.md
+.DS_Store

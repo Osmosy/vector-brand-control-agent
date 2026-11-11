@@ -1,0 +1,31 @@
+{
+  "brand": {
+    "name": "{brand}",
+    "aliases": ["вариант написания латиницей", "бывшее название"],
+    "domains": ["example.ru"],
+    "category": "{category} — как пользователь называет категорию",
+    "geo": "RU",
+    "language": "ru"
+  },
+  "competitors": [
+    {
+      "name": "{competitor}",
+      "aliases": ["Cyrillic spelling"],
+      "domains": ["competitor.ru"],
+      "note": "прямой конкурент / соседняя ниша"
+    }
+  ],
+  "facts": [
+    {
+      "claim": "цена от N рублей в месяц",
+      "source": "https://example.ru/pricing",
+      "checked": "2026-11-11"
+    }
+  ],
+  "measurement": {
+    "engines": ["google-ai-mode", "chatgpt", "perplexity"],
+    "repeats": 3,
+    "web_search": true,
+    "dates": ["2026-11-11"]
+  }
+}
