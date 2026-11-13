@@ -3,8 +3,11 @@
 
 Checks that the documentation cannot drift from the tree: skill frontmatter,
 referenced support files, prompt-set composition, sample markup contract,
-counts quoted in README and agent-description, relative links, and README
-images that Pages would break.
+metric names against the scorer, counts quoted in README and agent-description,
+relative links (including ones Pages would break), and images.
+
+Contract columns and metric names are not duplicated here: they are read from
+scripts/geo_score.py, so a metric that exists only in the documentation fails.
 
 Exit codes: 0 — clean, 1 — findings, 2 — bad input (required file missing).
 
@@ -13,6 +16,7 @@ Stdlib only, no network.
 
 import csv
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -22,24 +26,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILL = "vector-brand-control-agent"
 SKILL_DIR = os.path.join(ROOT, "skills", SKILL)
 TEMPLATES = os.path.join(SKILL_DIR, "templates")
-METRIC_COUNT = 4
+SCORER_PATH = os.path.join(SKILL_DIR, "scripts", "geo_score.py")
 ALLOWED_ROLES = {"none", "listed", "recommended", "top", "negative"}
-EXPECTED_MEASUREMENT_COLUMNS = [
-    "date",
-    "engine",
-    "prompt_id",
-    "scenario_class",
-    "weight",
-    "repeat",
-    "brand_mentioned",
-    "brand_role",
-    "brand_pos",
-    "competitor",
-    "competitor_role",
-    "competitor_pos",
-    "brand_cited",
-    "competitor_cited",
-]
+
+_spec = importlib.util.spec_from_file_location("geo_score", SCORER_PATH)
+if _spec is None or _spec.loader is None:
+    sys.exit("cannot load the scorer: " + SCORER_PATH)
+geo = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(geo)
+
+EXPECTED_MEASUREMENT_COLUMNS = list(geo.COLUMNS)
+METRIC_NAMES = {geo.METRIC_NAMES.get(key, key) for key in geo.METRIC_KEYS}
+DOC_ONLY_METRICS = {"loss_scenarios"}
 
 findings = []
 checks = 0
@@ -191,6 +189,7 @@ def check_sample():
         ok("sample/columns", "14 columns match the skill contract")
     bad = []
     engines = set()
+    seen = set()
     for index, row in enumerate(rows, start=2):
         if len(row) != len(EXPECTED_MEASUREMENT_COLUMNS):
             bad.append(f"line {index}: {len(row)} fields")
@@ -201,6 +200,17 @@ def check_sample():
             value = record[key].strip()
             if value and value not in ALLOWED_ROLES:
                 bad.append(f"line {index}: {key} '{value}'")
+        for key in ("web_search", "brand_mentioned", "brand_cited", "competitor_cited"):
+            value = record[key].strip().lower()
+            if value not in {"true", "false"}:
+                bad.append(f"line {index}: {key} '{record[key]}' is not true/false")
+        key = (record["date"], record["engine"], record["prompt_id"], record["repeat"])
+        if key in seen:
+            bad.append(
+                f"line {index}: duplicate answer "
+                f"{record['engine']}/{record['prompt_id']} repeat={record['repeat']}"
+            )
+        seen.add(key)
     if bad:
         fail("sample/contract", "; ".join(bad[:5]))
     else:
@@ -226,7 +236,7 @@ def check_counts(prompts, classes, engines):
         "Скрипты замера": len(
             [name for name in os.listdir(os.path.join(SKILL_DIR, "scripts")) if name.endswith(".py")]
         ),
-        "Метрики в сводке": METRIC_COUNT,
+        "Метрики в сводке": len(geo.METRIC_KEYS),
     }
     problems = []
     for label, value in expected.items():
@@ -256,9 +266,25 @@ def check_counts(prompts, classes, engines):
 # ---------------------------------------------------------------------- links
 
 
+def pages_excluded():
+    """Каталоги и файлы, которые _config.yml исключает из сборки Pages:
+    относительная ссылка в такой каталог на опубликованном сайте даёт 404."""
+    config = read(os.path.join(ROOT, "_config.yml"))
+    block = re.search(r"exclude:\s*\n((?:\s+-.*\n)+)", config)
+    excluded = set()
+    if block:
+        for line in block.group(1).splitlines():
+            value = line.strip().lstrip("-").strip().strip('"').strip("'")
+            if value:
+                excluded.add(value.rstrip("/"))
+    return excluded
+
+
 def check_links():
     problems = []
+    broken_on_pages = []
     total = 0
+    excluded = pages_excluded()
     for base, dirs, files in os.walk(ROOT):
         dirs[:] = [name for name in dirs if name not in {".git", "__pycache__"}]
         for name in files:
@@ -266,7 +292,7 @@ def check_links():
                 continue
             path = os.path.join(base, name)
             text = strip_fences(read(path))
-            for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", text):
+            for target in re.findall(r"!?\[[^\]]*\]\(([^)]+)\)", text):
                 target = target.strip()
                 if target.startswith(("http://", "https://", "mailto:", "#")):
                     continue
@@ -277,25 +303,31 @@ def check_links():
                 resolved = os.path.normpath(os.path.join(base, anchor_free))
                 if not os.path.exists(resolved):
                     problems.append(f"{os.path.relpath(path, ROOT)} -> {target}")
+                    continue
+                top = os.path.relpath(resolved, ROOT).split(os.sep)[0].rstrip("/")
+                if top in excluded:
+                    broken_on_pages.append(
+                        f"{os.path.relpath(path, ROOT)} -> {target} "
+                        f"(каталог '{top}' исключён из сборки Pages)"
+                    )
     if problems:
         fail("links/relative", "; ".join(problems[:5]))
     else:
         ok("links/relative", f"{total} links resolve")
+    if broken_on_pages:
+        fail("links/pages", "; ".join(broken_on_pages[:5]))
+    else:
+        ok("links/pages", "no link points into an excluded directory")
 
 
 def check_images():
-    config = read(os.path.join(ROOT, "_config.yml"))
-    block = re.search(r"exclude:\s*\n((?:\s+-.*\n)+)", config)
-    excluded = set()
-    if block:
-        for line in block.group(1).splitlines():
-            value = line.strip().lstrip("-").strip().strip('"').strip("'")
-            if value:
-                excluded.add(value.rstrip("/"))
+    excluded = pages_excluded()
     problems = []
     for name in ("README.md", "agent-description.md", "NOTICE.md"):
         text = read(os.path.join(ROOT, name))
-        for src in re.findall(r'<img[^>]+src="([^"]+)"', text):
+        sources = re.findall(r'<img[^>]+src="([^"]+)"', text)
+        sources += [target.split()[0] for target in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", text)]
+        for src in sources:
             if src.startswith(("http://", "https://", "data:")):
                 continue
             if not os.path.isfile(os.path.join(ROOT, src)):
@@ -305,9 +337,42 @@ def check_images():
             if top in excluded:
                 problems.append(f"{name}: {src} lives in excluded dir '{top}'")
     if problems:
-        fail("images/assets", "; ".join(problems))
+        fail("images/assets", "; ".join(problems[:5]))
     else:
-        ok("images/assets", "root images exist and are not excluded")
+        ok("images/assets", "images exist and are not excluded")
+
+
+# -------------------------------------------------------------------- metrics
+
+
+def check_metrics():
+    """Таблица метрик в SKILL.md сверяется с кодом в ОБЕ стороны: метрика в
+    документации без реализации (sentiment) и реализованная метрика без строки
+    в документации — обе ошибки."""
+    text = read(os.path.join(SKILL_DIR, "SKILL.md"))
+    block = re.search(r"## Что именно измеряется\n(.*?)\n## ", text, flags=re.S)
+    if not block:
+        fail("metrics/skill", "section '## Что именно измеряется' not found")
+        return
+    documented = set()
+    for line in block.group(1).splitlines():
+        if not line.startswith("|"):
+            continue
+        name = re.search(r"`([a-z][a-z_]+)`", line)
+        if name:
+            documented.add(name.group(1))
+    expected = METRIC_NAMES | DOC_ONLY_METRICS
+    ghosts = sorted(documented - expected)
+    missing = sorted(expected - documented)
+    problems = []
+    if ghosts:
+        problems.append("в документации нет в коде: " + ", ".join(ghosts))
+    if missing:
+        problems.append("в коде есть, в документации нет: " + ", ".join(missing))
+    if problems:
+        fail("metrics/skill", "; ".join(problems))
+    else:
+        ok("metrics/skill", f"{len(expected)} metrics match the scorer")
 
 
 def check_license_and_notice():
@@ -359,6 +424,7 @@ def main():
     engines = check_sample()
     if prompts is not None and classes is not None and engines is not None:
         check_counts(prompts, classes, engines)
+    check_metrics()
     check_links()
     check_images()
     check_license_and_notice()
