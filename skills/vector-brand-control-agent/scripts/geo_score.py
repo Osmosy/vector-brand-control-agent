@@ -132,35 +132,55 @@ def load(path):
 
 def sanity(rows):
     """Дешёвые проверки согласованности разметки. Противоречивая строка искажает
-    метрику молча, поэтому каждая находка печатается с номером строки."""
+    метрику молча, поэтому каждая находка печатается с номером строки.
+
+    Возвращает пары (вид, текст): «дубль» — один и тот же повтор размечен
+    дважды (чинится перезамером), «противоречие» — поля строки несовместимы
+    (чинится правкой разметки). Это разные действия, и в отчёте они идут
+    разными блоками."""
     problems = []
     seen = {}
     for row in rows:
         key = (row["date"], row["engine"], row["prompt_id"], row["repeat"])
         if row["repeat"] and key in seen:
             problems.append(
-                f"строка {row['line']}: повтор {row['repeat']} "
-                f"{row['engine']}/{row['prompt_id']} уже размечен (строка {seen[key]})"
+                (
+                    "дубль",
+                    f"строка {row['line']}: повтор {row['repeat']} "
+                    f"{row['engine']}/{row['prompt_id']} уже размечен (строка {seen[key]})",
+                )
             )
         else:
             seen.setdefault(key, row["line"])
         if not row["brand_mentioned"] and row["brand_role"] in (REC | {"listed"}):
             problems.append(
-                f"строка {row['line']}: brand_role={row['brand_role']} при "
-                f"brand_mentioned=false — метрика считает бренд неупомянутым"
+                (
+                    "противоречие",
+                    f"строка {row['line']}: brand_role={row['brand_role']} при "
+                    f"brand_mentioned=false — метрика считает бренд неупомянутым",
+                )
             )
         elif not row["brand_mentioned"] and row["brand_pos"]:
             problems.append(
-                f"строка {row['line']}: brand_pos={row['brand_pos']} при brand_mentioned=false"
+                (
+                    "противоречие",
+                    f"строка {row['line']}: brand_pos={row['brand_pos']} при brand_mentioned=false",
+                )
             )
         if row["brand_role"] == "none" and row["brand_pos"]:
             problems.append(
-                f"строка {row['line']}: brand_pos={row['brand_pos']} при brand_role=none"
+                (
+                    "противоречие",
+                    f"строка {row['line']}: brand_pos={row['brand_pos']} при brand_role=none",
+                )
             )
         if row["competitor_role"] in REC and not row["competitor"]:
             problems.append(
-                f"строка {row['line']}: competitor_role={row['competitor_role']} "
-                f"без имени конкурента"
+                (
+                    "противоречие",
+                    f"строка {row['line']}: competitor_role={row['competitor_role']} "
+                    f"без имени конкурента",
+                )
             )
     return problems
 
@@ -356,7 +376,10 @@ def main():
     if unknown:
         print(f"\n> ⚠ неизвестные роли (считаются как 0): {', '.join(unknown)}")
 
-    warn(sanity(rows), "противоречивая разметка")
+    problems = sanity(rows)
+    warn([text for kind, text in problems if kind == "дубль"],
+         "дубли ответов (повтор размечен дважды — нужен перезамер)")
+    warn([text for kind, text in problems if kind != "дубль"], "противоречивая разметка")
     if prompts:
         warn(prompt_checks(rows, prompts), "расхождения с prompts.csv")
 
