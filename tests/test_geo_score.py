@@ -61,6 +61,10 @@ def run_cli(path, *extra):
     )
 
 
+def sanity_messages(rows):
+    return [text for _, text in geo.sanity(rows)]
+
+
 class MetricsTest(unittest.TestCase):
     def test_share_of_voice_counts_only_recommendations(self):
         rows = [row(role="recommended", comp_role="listed") for _ in range(2)]
@@ -140,8 +144,30 @@ class ContractTest(unittest.TestCase):
     def test_duplicate_repeat_is_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = write_csv([row(), row(), row()], os.path.join(tmp, "m.csv"))
-            problems = geo.sanity(geo.load(path))
+            problems = sanity_messages(geo.load(path))
             self.assertTrue(any("уже размечен" in item for item in problems), problems)
+
+    def test_duplicate_and_contradiction_are_different_kinds(self):
+        """Дубль чинится перезамером, противоречие — правкой разметки: в отчёте
+        это разные блоки, значит и вид находки должен различаться."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_csv(
+                [row(), row(), row(mentioned="false", role="recommended")],
+                os.path.join(tmp, "m.csv"),
+            )
+            kinds = {kind for kind, _ in geo.sanity(geo.load(path))}
+            self.assertEqual(kinds, {"дубль", "противоречие"})
+
+    def test_cli_prints_duplicates_apart_from_contradictions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_csv(
+                [row(), row(), row(mentioned="false", role="listed", pos="2")],
+                os.path.join(tmp, "m.csv"),
+            )
+            result = run_cli(path, "--min-n", "1")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("дубли ответов", result.stdout)
+            self.assertIn("противоречивая разметка", result.stdout)
 
     def test_contradictory_role_without_mention_is_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -149,7 +175,7 @@ class ContractTest(unittest.TestCase):
                 [row(mentioned="false", role="recommended", pos="1")],
                 os.path.join(tmp, "m.csv"),
             )
-            problems = geo.sanity(geo.load(path))
+            problems = sanity_messages(geo.load(path))
             self.assertTrue(any("brand_mentioned=false" in item for item in problems), problems)
 
     def test_position_without_role_is_reported(self):
@@ -158,13 +184,13 @@ class ContractTest(unittest.TestCase):
                 [row(mentioned="false", role="none", pos="2")],
                 os.path.join(tmp, "m.csv"),
             )
-            problems = geo.sanity(geo.load(path))
+            problems = sanity_messages(geo.load(path))
             self.assertTrue(any("brand_role=none" in item for item in problems), problems)
 
     def test_recommended_competitor_without_name_is_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = write_csv([row(comp="", comp_role="recommended")], os.path.join(tmp, "m.csv"))
-            problems = geo.sanity(geo.load(path))
+            problems = sanity_messages(geo.load(path))
             self.assertTrue(any("без имени конкурента" in item for item in problems), problems)
 
     def test_clean_sample_has_no_sanity_findings(self):
