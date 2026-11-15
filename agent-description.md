@@ -34,6 +34,6 @@
 | Промпты в наборе | 30 | `skills/vector-brand-control-agent/templates/prompts.csv` |
 | Классы сценариев | 6 | там же, колонка `scenario_class` |
 | Движки в образце | 3 | `templates/measurements-sample.csv` |
-| Шаблоны | 3 | `skills/vector-brand-control-agent/templates/` |
+| Шаблоны | 5 | `skills/vector-brand-control-agent/templates/` |
 | Скрипты замера | 1 | `skills/vector-brand-control-agent/scripts/geo_score.py` |
 | Метрики в сводке | 6 | SoV, win_rate, mention_rate, citation_share, competitor_citation_share, negative_rate |
