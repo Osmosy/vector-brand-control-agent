@@ -18,7 +18,8 @@
 
 - Порядок чтения: `README.md` → `skills/vector-brand-control-agent/SKILL.md` → `templates/prompts.csv`.
 - Сначала базовый замер, потом правки: без `measurements.csv` до `plan.md` эффект не измерить.
-- Три повтора на промпт и движок обязательны; ответы моделей недетерминированы.
+- Режим по умолчанию — быстрая проверка (8 промптов, 1–2 движка, один повтор, счёт без процентов); полный замер — второй этап, когда решено внедрять правки.
+- В полном замере три повтора на промпт и движок обязательны; ответы моделей недетерминированы.
 - Ответ с веб-поиском и ответ из памяти — разные строки в разметке (колонка `web_search`),
   не смешивать; канал печатается отдельным срезом.
 - Одна волна — одна дата: повторный замер идёт с новой `date`, иначе сводка смешивает волны.
@@ -34,6 +35,6 @@
 | Промпты в наборе | 30 | `skills/vector-brand-control-agent/templates/prompts.csv` |
 | Классы сценариев | 6 | там же, колонка `scenario_class` |
 | Движки в образце | 3 | `templates/measurements-sample.csv` |
-| Шаблоны | 5 | `skills/vector-brand-control-agent/templates/` |
+| Шаблоны | 6 | `skills/vector-brand-control-agent/templates/` |
 | Скрипты замера | 1 | `skills/vector-brand-control-agent/scripts/geo_score.py` |
 | Метрики в сводке | 6 | SoV, win_rate, mention_rate, citation_share, competitor_citation_share, negative_rate |
