@@ -1,0 +1,9 @@
+id,lang,scenario_class,weight,text
+q-cat-01,ru,category,3,какой {category} выбрать в 2026 году
+q-cat-02,ru,category,3,лучшие {category} — рейтинг производителей и марок
+q-cat-03,ru,category,3,какие марки {category} настоящие и где их купить в {geo}
+q-task-01,ru,task,3,нужен {category} для {задача_1} — что взять
+q-task-02,ru,task,3,нужен {category} для {задача_2} — какие марки подойдут
+q-task-03,ru,task,3,{category} с {главное_свойство} — какие марки есть
+q-brd-01,ru,brand,3,что такое {brand} — что за марка и кто производитель
+q-cmp-01,ru,compare,3,{brand} или {competitor} — что лучше и почему
