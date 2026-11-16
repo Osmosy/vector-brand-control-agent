@@ -526,7 +526,8 @@ diff -r ~/projects/vector-brand-control-agent/skills/vector-brand-control-agent 
   в нём 4 промпта, поэтому против полного `prompts.csv` покрытие честно покажет недобор.
 - `templates/prompts-ru-meat.csv` — отраслевой каркас на 30 промптов с плейсхолдерами
   `{BRAND}`, `{COMPETITOR}`, `{COMPANY}`: структура классов и весов, проверенная на живом замере.
-- `templates/agent-task.md` — шаблон ТЗ на замер: шаги 3–7, правила разметки, критерии приёмки.
+- `templates/agent-task.md` — шаблон ТЗ: выбор режима, быстрая проверка (Б1–Б5), полный замер
+  (шаги 3–7), правила разметки, критерии приёмки по каждому режиму.
 - `references/browser-measurement.md` — рецепт браузерного замера: префлайт, изоляция сессий,
   извлечение текста ответа, API-харнесс как резерв.
 - `scripts/geo_score.py` — скоринг: SoV, win_rate, citation_share, покрытие, провалы.
